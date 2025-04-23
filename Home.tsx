@@ -9,12 +9,12 @@ import {useEffect, useRef, useState} from 'react';
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
-function parseError(error: string) {
+function parseError(error: string): string {
   const regex = /{"error":(.*)}/gm;
   const m = regex.exec(error);
   try {
-    const e = m[1];
-    const err = JSON.parse(e);
+    const e = m?.[1]; // Added optional chaining
+    const err = JSON.parse(e || '{}');
     return err.message || error;
   } catch (e) {
     return error;
@@ -22,17 +22,16 @@ function parseError(error: string) {
 }
 
 export default function Home() {
-  const canvasRef = useRef(null);
-  const backgroundImageRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penColor, setPenColor] = useState('#000000');
-  const colorInputRef = useRef(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
   const [prompt, setPrompt] = useState('');
-  const [generatedImage, setGeneratedImage] = useState(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [customApiKey, setCustomApiKey] = useState('');
 
   // Load background image when generatedImage changes
   useEffect(() => {
@@ -57,11 +56,11 @@ export default function Home() {
   // Initialize canvas with white background
   const initializeCanvas = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas!.getContext('2d');
 
     // Fill canvas with white background
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx!.fillStyle = '#FFFFFF';
+    ctx!.fillRect(0, 0, canvas!.width, canvas!.height);
   };
 
   // Draw the background image to the canvas
@@ -69,75 +68,74 @@ export default function Home() {
     if (!canvasRef.current || !backgroundImageRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas!.getContext('2d');
 
     // Fill with white background first
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx!.fillStyle = '#FFFFFF';
+    ctx!.fillRect(0, 0, canvas!.width, canvas!.height);
 
     // Draw the background image
-    ctx.drawImage(
+    ctx!.drawImage(
       backgroundImageRef.current,
       0,
       0,
-      canvas.width,
-      canvas.height,
+      canvas!.width,
+      canvas!.height,
     );
   };
 
   // Get the correct coordinates based on canvas scaling
-  const getCoordinates = (e) => {
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvas!.getBoundingClientRect();
 
-    // Calculate the scaling factor between the internal canvas size and displayed size
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = canvas!.width / rect.width;
+    const scaleY = canvas!.height / rect.height;
 
-    // Apply the scaling to get accurate coordinates
-    return {
-      x:
-        (e.nativeEvent.offsetX ||
-          e.nativeEvent.touches?.[0]?.clientX - rect.left) * scaleX,
-      y:
-        (e.nativeEvent.offsetY ||
-          e.nativeEvent.touches?.[0]?.clientY - rect.top) * scaleY,
-    };
+    if ('offsetX' in e.nativeEvent) {
+      return {
+        x: e.nativeEvent.offsetX * scaleX,
+        y: e.nativeEvent.offsetY * scaleY,
+      };
+    } else {
+      const touch = e.nativeEvent.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    }
   };
 
-  const startDrawing = (e) => {
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas!.getContext('2d'); // Added non-null assertion
     const {x, y} = getCoordinates(e);
 
-    // Prevent default behavior to avoid scrolling on touch devices
     if (e.type === 'touchstart') {
       e.preventDefault();
     }
 
-    // Start a new path without clearing the canvas
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    ctx!.beginPath();
+    ctx!.moveTo(x, y);
     setIsDrawing(true);
   };
 
-  const draw = (e) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
 
-    // Prevent default behavior to avoid scrolling on touch devices
     if (e.type === 'touchmove') {
       e.preventDefault();
     }
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas!.getContext('2d'); // Added non-null assertion
     const {x, y} = getCoordinates(e);
 
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = penColor;
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    ctx!.lineWidth = 5;
+    ctx!.lineCap = 'round';
+    ctx!.strokeStyle = penColor;
+    ctx!.lineTo(x, y);
+    ctx!.stroke();
   };
 
   const stopDrawing = () => {
@@ -146,17 +144,17 @@ export default function Home() {
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas!.getContext('2d');
 
     // Fill with white instead of just clearing
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx!.fillStyle = '#FFFFFF';
+    ctx!.fillRect(0, 0, canvas!.width, canvas!.height);
 
     setGeneratedImage(null);
     backgroundImageRef.current = null;
   };
 
-  const handleColorChange = (e) => {
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPenColor(e.target.value);
   };
 
@@ -166,13 +164,13 @@ export default function Home() {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       openColorPicker();
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!canvasRef.current) return;
@@ -185,34 +183,18 @@ export default function Home() {
 
       // Create a temporary canvas to add white background
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
+      tempCanvas.width = canvas!.width;
+      tempCanvas.height = canvas!.height;
       const tempCtx = tempCanvas.getContext('2d');
 
       // Fill with white background
-      tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tempCtx!.fillStyle = '#FFFFFF'; // Added non-null assertion
+      tempCtx!.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
       // Draw the original canvas content on top of the white background
-      tempCtx.drawImage(canvas, 0, 0);
+      tempCtx!.drawImage(canvas!, 0, 0);
 
       const drawingData = tempCanvas.toDataURL('image/png').split(',')[1];
-
-      // Create request payload
-      const requestPayload = {
-        prompt,
-        drawingData,
-        customApiKey, // Add the custom API key to the payload if it exists
-      };
-
-      // Log the request payload (without the full image data for brevity)
-      console.log('Request payload:', {
-        ...requestPayload,
-        drawingData: drawingData
-          ? `${drawingData.substring(0, 50)}... (truncated)`
-          : null,
-        customApiKey: customApiKey ? '**********' : null,
-      });
 
       let contents: ContentUnion[] = [prompt];
 
@@ -240,21 +222,21 @@ export default function Home() {
       const data = {
         success: true,
         message: '',
-        imageData: null,
+        imageData: null as string | null,
         error: undefined,
       };
 
-      for (const part of response.candidates[0].content.parts) {
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
         // Based on the part type, either get the text or image data
         if (part.text) {
           data.message = part.text;
           console.log('Received text response:', part.text);
         } else if (part.inlineData) {
           const imageData = part.inlineData.data;
-          console.log('Received image data, length:', imageData.length);
-
-          // Include the base64 data in the response
-          data.imageData = imageData;
+          if (imageData) {
+            console.log('Received image data, length:', imageData.length);
+            data.imageData = imageData;
+          }
         }
       }
 
@@ -273,7 +255,7 @@ export default function Home() {
         console.error('Failed to generate image:', data.error);
         alert('Failed to generate image. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting drawing:', error);
       setErrorMessage(error.message || 'An unexpected error occurred.');
       setShowErrorModal(true);
@@ -287,17 +269,10 @@ export default function Home() {
     setShowErrorModal(false);
   };
 
-  // Handle the custom API key submission
-  const handleApiKeySubmit = (e) => {
-    e.preventDefault();
-    setShowErrorModal(false);
-    // Will use the customApiKey state in the next API call
-  };
-
   // Add touch event prevention function
   useEffect(() => {
     // Function to prevent default touch behavior on canvas
-    const preventTouchDefault = (e) => {
+    const preventTouchDefault = (e: TouchEvent) => {
       if (isDrawing) {
         e.preventDefault();
       }
