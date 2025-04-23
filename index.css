@@ -1,0 +1,41 @@
+html {
+  color-scheme: light;
+  background-color: white;
+}
+
+/* Ensure middle box and other elements are visible */
+canvas {
+  background-color: white;
+  border: 2px solid black;
+}
+
+html.dark canvas {
+  background-color: #1e1e1e;
+  border-color: white;
+}
+
+/* Ensure buttons and text are visible */
+button {
+  color: black;
+  background-color: #f0f0f0;
+  border: 1px solid black;
+}
+
+html.dark button {
+  color: white;
+  background-color: #333;
+  border-color: white;
+}
+
+/* Ensure input fields are visible */
+input[type="text"] {
+  color: black;
+  background-color: white;
+  border: 1px solid black;
+}
+
+html.dark input[type="text"] {
+  color: white;
+  background-color: #1e1e1e;
+  border-color: white;
+}
